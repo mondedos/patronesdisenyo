@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <Title>Convierte un objeto en un enumerado</Title>
+      <Author>Ricardo Prieto Mendoza</Author>
+      <Description>Genera la estructura básica del XMLMostrarFormulario.</Description>
+      <Shortcut>ms_objetoToEnum</Shortcut>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+    </Header>
+    <Snippet>
+      <Declarations>
+        <Literal>
+          <ID>tipoenumerado</ID>
+          <ToolTip>Enumerado</ToolTip>
+          <Default>Enumerado</Default>
+        </Literal>
+        <Literal>
+          <ID>objeto</ID>
+          <ToolTip>Objeto</ToolTip>
+          <Default>objeto</Default>
+        </Literal>
+        <Literal Editable="false">
+          <ID>Convert</ID>
+          <Function>SimpleTypeName(System.Convert)</Function>
+        </Literal>
+        <Literal Editable="false">
+          <ID>Enum</ID>
+          <Function>SimpleTypeName(System.Enum)</Function>
+        </Literal>
+      </Declarations>
+      <Code Language="csharp">
+        <![CDATA[   
+          $tipoenumerado$ t$objeto$ = ($tipoenumerado$)$Enum$.Parse(typeof($tipoenumerado$), $Convert$.ToString($objeto$));
+        ]]>
+      </Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

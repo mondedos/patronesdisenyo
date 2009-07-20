@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <Title>Rellena record set</Title>
+      <Author>Ricardo Prieto Mendoza</Author>
+      <Description>Rellena un DataTable de forma eficiente.</Description>
+      <Shortcut>ms_rellenarRecordSet</Shortcut>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+    </Header>
+    <Snippet>
+      <Declarations>
+        <Literal>
+          <ID>command</ID>
+          <ToolTip>Nombre del comando</ToolTip>
+          <Default>command</Default>
+        </Literal>
+        <Literal Editable="false">
+          <ID>DataTable</ID>
+          <Function>SimpleTypeName(System.Data.DataTable)</Function>
+        </Literal>
+        <Literal Editable="false">
+          <ID>SqlDataAdapter</ID>
+          <Function>SimpleTypeName(System.Data.SqlClient.SqlDataAdapter)</Function>
+        </Literal>
+      </Declarations>
+      <Code Language="csharp">
+        <![CDATA[
+                    $DataTable$ recordSet = new $DataTable$();
+                    $SqlDataAdapter$ adaptador = new $SqlDataAdapter$($command$);
+                    adaptador.Fill(recordSet);
+        ]]>
+      </Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>
