@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <Title>Convierte un record set a un array</Title>
+      <Author>Ricardo Prieto Mendoza</Author>
+      <Description>Convierte un record set a un array.</Description>
+      <Shortcut>ms_RecordSet2Array</Shortcut>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+    </Header>
+    <Snippet>
+      <Declarations>
+        <Literal>
+          <ID>Tipo</ID>
+          <ToolTip>Tipo al que pertenece el array</ToolTip>
+          <Default>MiTipoBean</Default>
+        </Literal>
+        <Literal>
+          <ID>array</ID>
+          <ToolTip>Array donde se almacenaran los datos</ToolTip>
+          <Default>solucion</Default>
+        </Literal>
+        <Literal>
+          <ID>recordSet</ID>
+          <ToolTip>Data table que representa el recordset</ToolTip>
+          <Default>recordSet</Default>
+        </Literal>
+        <Literal Editable="false">
+          <ID>DataRow</ID>
+          <Function>SimpleTypeName(System.Data.DataRow)</Function>
+        </Literal>
+        <Literal Editable="false">
+          <ID>BussinessEntitiesHelper</ID>
+          <Function>SimpleTypeName(Arrakis.Modoseguro.BussinessEntities.Helper.BussinessEntitiesHelper)</Function>
+        </Literal>
+      </Declarations>
+      <Code Language="csharp">
+        <![CDATA[                                       
+                    $Tipo$[] $array$ = new $Tipo$[$recordSet$.Rows.Count];
+                    int i = 0;
+                    foreach ($DataRow$ var in $recordSet$.Rows)
+                    {
+                        $Tipo$ bean = new $Tipo$();
+
+                        $BussinessEntitiesHelper$.RellenarBean<$Tipo$>(bean, var);
+
+                        $array$[i] = bean;
+                        i++;
+                    }                    
+        ]]>
+      </Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>

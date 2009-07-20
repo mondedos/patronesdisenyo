@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeSnippets xmlns="http://schemas.microsoft.com/VisualStudio/2005/CodeSnippet">
+  <CodeSnippet Format="1.0.0">
+    <Header>
+      <Title>Conectar a un procedimiento almacenado</Title>
+      <Author>Ricardo Prieto Mendoza</Author>
+      <Description>Conecta a un procedimiento almacenado.</Description>
+      <Shortcut>ms_conectarProc</Shortcut>
+      <SnippetTypes>
+        <SnippetType>Expansion</SnippetType>
+      </SnippetTypes>
+    </Header>
+    <Snippet>
+      <Declarations>
+        <Literal>
+          <ID>procedimientoAlmacenado</ID>
+          <ToolTip>Nombre del procedimiento almacenado</ToolTip>
+          <Default>EscribeAquí</Default>
+        </Literal>
+        <Literal Editable="false">
+          <ID>CommandType</ID>
+          <Function>SimpleTypeName(System.Data.CommandType)</Function>
+        </Literal>
+        <Literal Editable="false">
+          <ID>SqlParameterCollection</ID>
+          <Function>SimpleTypeName(System.Data.SqlClient.SqlParameterCollection)</Function>
+        </Literal>
+        <Literal Editable="false">
+          <ID>ExceptionClass</ID>
+          <Function>SimpleTypeName(System.Exception)</Function>
+        </Literal>
+        <Literal Editable="false">
+          <ID>SqlCommand</ID>
+          <Function>SimpleTypeName(System.Data.SqlClient.SqlCommand)</Function>
+        </Literal>
+        <Literal Editable="false">
+          <ID>SqlConnection</ID>
+          <Function>SimpleTypeName(System.Data.SqlClient.SqlConnection)</Function>
+        </Literal>
+      </Declarations>
+      <Code Language="csharp">
+        <![CDATA[using ($SqlConnection$ coneccion = new $SqlConnection$(this.cadcnx))
+            {
+                using ($SqlCommand$ command = new $SqlCommand$())
+                {
+                    command.Connection = coneccion;
+                    command.CommandText = "$procedimientoAlmacenado$";
+                    command.CommandType = $CommandType$.StoredProcedure;
+                    $SqlParameterCollection$ command_Parameters = command.Parameters;
+                    
+                    //rellenamos los parámetros
+                    throw new $ExceptionClass$("Construir Parámetros");                    
+                    
+                    //Abrimos la conección
+                    coneccion.Open();
+                    
+                    throw new $ExceptionClass$("TODO.");
+                    
+                    //Cerramos la conección
+                    coneccion.Close();
+
+                    //realizamos las comprobaciones pertinentes
+                }
+            }]]>
+      </Code>
+    </Snippet>
+  </CodeSnippet>
+</CodeSnippets>
