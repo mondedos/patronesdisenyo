@@ -13,6 +13,9 @@ namespace DAOSQL
 {
     public class DAOSQLHelper
     {
+        #region Persistencia ADO multiproveedor
+
+        
         private string _coneccionBD;
         /// <summary>
         /// Obtiene la cadena de conción a la base de datos
@@ -497,29 +500,16 @@ namespace DAOSQL
 
                             DbParameter parametro = parametros[mapeadoPor];
 
-                            parametro.Value = var.GetValue(bean);
-
-                            //object nuevoValor = fila[mapeadoPor];
-
-                            ////miramos si el elemento de la columana no sea un valor nulo
-                            //if (!fila.IsNull(mapeadoPor) && nuevoValor is IConvertible)
-                            //{
-                            //    Type tipoP = var.FieldType;
-
-                            //    if (tipoP.IsEnum)
-                            //    {
-                            //        var.SetValue(bean, Enum.Parse(tipoP, nuevoValor.ToString().Replace(' ', '_')));
-                            //    }
-                            //    else
-                            //    {
-                            //        var.SetValue(bean, ChangeType(nuevoValor, var.FieldType));
-                            //    }
-                            //}
+                            parametro.Value = var.GetValue(bean);                       
                         }
                     }
                 }
             }
         }
+
+        #endregion
+
+
         public static void RellenarBean(object bean, DbParameterCollection parametros)
         {
             Type tipo = bean.GetType();
