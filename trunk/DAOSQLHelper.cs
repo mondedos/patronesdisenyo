@@ -173,6 +173,55 @@ namespace DAOSQL
             return -1;
         }
         /// <summary>
+        /// Actualiza un objeto bean persistente en la base de datos
+        /// </summary>
+        /// <typeparam name="T">tipo objeto bean persistente</typeparam>
+        /// <param name="beanOriginal">objeto bean persistente de referencia a modificar</param>
+        /// <param name="beanModificado">objeto bean persistente con los valores a modificar</param>
+        /// <returns></returns>
+        public int ActualizaObjetoPersistente<T>(T beanOriginal, T beanModificado)
+        {
+            //calculamos el tipo de T para obtener información sobre los objetos que queremos contruir
+            //a partir de la base de datos
+            Type tipo = typeof(T);
+
+            //comprobamos que el tipo sea persistente
+            if (tipo.IsDefined(typeof(ObjetoPersistente), false))
+            {
+                //generamos el nombre de la tabla por defecto a partir del nombre del tipo
+                string nombreTabla = CalcularNombreTabla(tipo);
+
+
+                using (DbConnection connection = _factoria.CreateConnection())
+                {
+                    connection.ConnectionString = _coneccionBD;
+
+
+                    #region Calcular el comando de inserccion
+                    DbCommandBuilder comandBuilder = CrearDBCommandBuilder(nombreTabla, connection);
+
+                    DbCommand comandoInsert = comandBuilder.GetUpdateCommand(true);
+
+                    #endregion
+
+                    connection.Close();
+
+                    connection.Open();
+                    DbParameterCollection parametrosComando = comandoInsert.Parameters;
+
+                    //rellenamos las condiciones del comando para buscar el bean a modificar
+                    RellenarParametrosFrom<T>(beanOriginal, parametrosComando, "Original_");
+
+                    //rellenamos los valores que queremos modificar
+                    RellenarParametrosFrom<T>(beanModificado, parametrosComando);
+
+                    return comandoInsert.ExecuteNonQuery();
+                }
+            }
+            return -1;
+        }
+
+        /// <summary>
         /// Calcula un DbCommandBuilder que nos ayudará a generar de forma automática los comandos mas comunes
         /// </summary>
         /// <param name="nombreTabla"></param>
@@ -363,23 +412,64 @@ namespace DAOSQL
                             //miramos si el elemento de la columana no sea un valor nulo
                             if (!fila.IsNull(mapeadoPor) && nuevoValor is IConvertible)
                             {
-                                Type tipoP = var.FieldType;
-
-                                if (tipoP.IsEnum)
-                                {
-                                    var.SetValue(bean, Enum.Parse(tipoP, nuevoValor.ToString().Replace(' ', '_')));
-                                }
-                                else
-                                {
-                                    var.SetValue(bean, ChangeType(nuevoValor, var.FieldType));
-                                }
+                                AsignaValorAtributo<T>(bean, var, nuevoValor);
                             }
                         }
                     }
                 }
             }
         }
-        private static void RellenarParametrosFrom<T>(T bean, DbParameterCollection parametros)
+        public static void RellenarBean<T>(T bean, DbParameterCollection parametros)
+        {
+            Type tipo = typeof(T);
+
+            //comprobamos que sea un objeto persistente
+            if (tipo.IsDefined(typeof(ObjetoPersistente), false))
+            {
+
+                foreach (FieldInfo var in tipo.GetFields(BindingFlags.Instance | BindingFlags.NonPublic))
+                {
+                    //para cada atributo vemos si es persistente
+                    AtributoPersistente[] attrs = var.GetCustomAttributes(typeof(AtributoPersistente), false) as AtributoPersistente[];
+                    if (attrs.Length > 0)
+                    {
+                        //obtenemos el nombre del campo que mapea este atributo
+                        string mapeadoPor = attrs[0].MapeadoPor;
+                        //si no se ha especificado ningún nombre de columa de la base datos, le asignamos el nombre del atributo
+                        if (string.IsNullOrEmpty(mapeadoPor))
+                        {
+                            mapeadoPor = var.Name;
+                        }
+
+                        if (parametros.Contains(mapeadoPor))
+                        {
+                            object nuevoValor = parametros[mapeadoPor].Value;
+
+                            AsignaValorAtributo<T>(bean, var, nuevoValor);
+                        }
+                    }
+                }
+            }
+        }
+
+        private static void AsignaValorAtributo<T>(T bean, FieldInfo var, object nuevoValor)
+        {
+            Type tipoP = var.FieldType;
+
+            if (tipoP.IsEnum)
+            {
+                var.SetValue(bean, Enum.Parse(tipoP, nuevoValor.ToString().Replace(' ', '_')));
+            }
+            else
+            {
+                var.SetValue(bean, ChangeType(nuevoValor, var.FieldType));
+            }
+        }
+        private void RellenarParametrosFrom<T>(T bean, DbParameterCollection parametros)
+        {
+            RellenarParametrosFrom<T>(bean, parametros, null);
+        }
+        private void RellenarParametrosFrom<T>(T bean, DbParameterCollection dbParameterCollection, string prefijo)
         {
             Type tipo = typeof(T);
 
@@ -400,12 +490,16 @@ namespace DAOSQL
                         {
                             mapeadoPor = var.Name;
                         }
+                        if (!string.IsNullOrEmpty(prefijo))
+                        {
+                            mapeadoPor = prefijo + mapeadoPor;
+                        }
 
                         //vemos si existe una columna que contenga el nombre que se mapea
-                        if (parametros.Contains(mapeadoPor))
+                        if (dbParameterCollection.Contains(mapeadoPor))
                         {
 
-                            DbParameter parametro = parametros[mapeadoPor];
+                            DbParameter parametro = dbParameterCollection[mapeadoPor];
 
                             parametro.Value = var.GetValue(bean);
                         }
@@ -417,30 +511,7 @@ namespace DAOSQL
         #endregion
 
 
-        public static void RellenarBean(object bean, DbParameterCollection parametros)
-        {
-            Type tipo = bean.GetType();
 
-            foreach (FieldInfo var in tipo.GetFields(BindingFlags.Instance | BindingFlags.NonPublic))
-            {
-
-            }
-
-            foreach (System.Reflection.PropertyInfo propiedad in tipo.GetProperties())
-            {
-                string nombrePropiedad = "@" + propiedad.Name.ToLower();
-
-                if (parametros.Contains(nombrePropiedad))
-                {
-                    object nuevoValor = parametros[nombrePropiedad].Value;
-
-                    if (propiedad.CanWrite && nuevoValor != null && nuevoValor != System.DBNull.Value && nuevoValor is IConvertible)
-                    {
-                        propiedad.SetValue(bean, ChangeType(nuevoValor, propiedad.PropertyType), null);
-                    }
-                }
-            }
-        }
         /// <summary>
         /// Dado un bean y un IDictionary que contiene elementos cuya key coincide con los nombres de las propiedades
         /// del Bean, copia los valores del IDictionary a las propiedades equivalentes del Bean.
