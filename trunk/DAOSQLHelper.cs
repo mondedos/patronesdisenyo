@@ -11,11 +11,11 @@ using System.Data.Common;
 
 namespace DAOSQL
 {
-    public class DAOSQLHelper
+    public class ADOHelper
     {
         #region Persistencia ADO multiproveedor
 
-        
+
         private string _coneccionBD;
         /// <summary>
         /// Obtiene la cadena de conción a la base de datos
@@ -26,7 +26,7 @@ namespace DAOSQL
         }
         private DbProviderFactory _factoria;
 
-        public DAOSQLHelper(DbProviderFactory factoria, string cadenaConeccion)
+        public ADOHelper(DbProviderFactory factoria, string cadenaConeccion)
         {
             _factoria = factoria;
             _coneccionBD = cadenaConeccion;
@@ -82,13 +82,14 @@ namespace DAOSQL
 
                         //en este caso como nos han especificado una consulta sql, vemos si hay que rellenar parametros
 
+                        IDataParameterCollection parametrosComando = comandoSelect.Parameters;
                         foreach (KeyValuePair<string, object> var in parametrosValor)
                         {
                             IDbDataParameter pa = comandoSelect.CreateParameter();
                             pa.ParameterName = var.Key;
                             pa.Value = var.Value;
 
-                            comandoSelect.Parameters.Add(pa);
+                            parametrosComando.Add(pa);
                         }
                         comandoSelect.CommandType = tipoComando;
                     }
@@ -105,7 +106,7 @@ namespace DAOSQL
                         T profesional = new T();
 
                         //rellenamos cada bean
-                        DAOSQLHelper.RellenarBean<T>(profesional, var);
+                        ADOHelper.RellenarBean<T>(profesional, var);
                         //y la añadimos a la solución
                         solucion.Add(profesional);
                     }
@@ -119,12 +120,12 @@ namespace DAOSQL
         {
             //generamos el nombre de la tabla por defecto a partir del nombre del tipo
             string nombreTabla = tipo.Name;
-
+            ObjetoPersistente atributo = null;
             //buscamos si existe un nombre especifico que mapea el objeto en la base de datos
             ObjetoPersistente[] attrs = tipo.GetCustomAttributes(typeof(ObjetoPersistente), false) as ObjetoPersistente[];
-            if (attrs.Length > 0 && !string.IsNullOrEmpty(attrs[0].MapeadoPor))
+            if (attrs.Length > 0 && !string.IsNullOrEmpty((atributo = attrs[0]).MapeadoPor))
             {
-                nombreTabla = attrs[0].MapeadoPor;
+                nombreTabla = atributo.MapeadoPor;
             }
             return nombreTabla;
         }
@@ -192,100 +193,6 @@ namespace DAOSQL
 
             comandBuilder.DataAdapter = lo_Adapt;
             return comandBuilder;
-        }
-
-
-
-
-        /// <summary>
-        /// Inserta el objeto en la base de datos
-        /// </summary>
-        /// <param name="conex"></param>
-        /// <param name="objeto"></param>
-        /// <returns>cierto si se ha tenido exito en la operacion</returns>
-        internal static bool PersistirObjetoNuevo(SqlConnection conex, object objeto)
-        {
-            return PersistirObjetoNuevo(conex, objeto, null);
-        }
-        /// <summary>
-        /// Inserta el objeto en la base de datos
-        /// </summary>
-        /// <param name="conex"></param>
-        /// <param name="objeto"></param>
-        /// <param name="st"></param>
-        /// <returns>cierto si se ha tenido exito en la operacion</returns>
-        internal static bool PersistirObjetoNuevo(SqlConnection conex, object objeto, SqlTransaction st)
-        {
-            Type t = objeto.GetType();
-
-            bool resultados = true;
-
-            System.Reflection.FieldInfo[] campos = t.GetFields();
-
-            StringBuilder sb = new StringBuilder();
-            StringBuilder valores = new StringBuilder();
-
-            bool primero = true;
-
-            foreach (System.Reflection.FieldInfo campo in campos)
-            {
-                string key = campo.Name;
-
-                if (primero)
-                    primero = false;
-                else
-                {
-                    sb.Append(" ,");
-                    valores.Append(" ,");
-                }
-                sb.Append(key);
-                valores.Append("@" + key);
-            }
-
-            StringBuilder query = new StringBuilder();
-            query.Append("INSERT INTO ");
-            query.Append(t.Name);
-            query.Append(" (");
-            query.Append(sb);
-            query.Append(") VALUES ( ");
-            query.Append(valores);
-            query.Append(")");
-
-            SqlCommand comando = conex.CreateCommand();
-
-            comando.CommandText = query.ToString();
-            if (st != null)
-                comando.Transaction = st;
-
-
-            foreach (System.Reflection.FieldInfo campo in campos)
-            {
-                string key = campo.Name;
-
-                object valor = campo.GetValue(objeto);
-
-                comando.Parameters.AddWithValue("@" + key, valor);
-            }
-
-            resultados = comando.ExecuteNonQuery() > 0;
-
-#if DEBUG
-            //if (resultados)
-            //{
-            //    Log log = Log.Instance;
-            //    log.Insertar(comando.CommandText);
-
-            //    foreach (System.Reflection.FieldInfo campo in campos)
-            //    {
-            //        string key = campo.Name;
-
-            //        object valor = campo.GetValue(objeto);
-            //        log.Insertar(key + " = " + valor);
-            //    }
-            //}
-#endif
-
-            return resultados;
         }
 
         /// <summary>
@@ -500,7 +407,7 @@ namespace DAOSQL
 
                             DbParameter parametro = parametros[mapeadoPor];
 
-                            parametro.Value = var.GetValue(bean);                       
+                            parametro.Value = var.GetValue(bean);
                         }
                     }
                 }
