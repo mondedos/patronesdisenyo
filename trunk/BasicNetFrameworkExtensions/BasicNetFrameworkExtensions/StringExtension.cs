@@ -51,11 +51,11 @@ namespace System
             StringBuilder sb = new StringBuilder();
             if (!string.IsNullOrEmpty(cadena))
             {
-                using (StringReader reader=new StringReader(cadena))
+                using (StringReader reader = new StringReader(cadena))
                 {
                     string linea = reader.ReadLine();
 
-                    while (linea!=null)
+                    while (linea != null)
                     {
                         sb.AppendLine(linea);
                         linea = reader.ReadLine();
