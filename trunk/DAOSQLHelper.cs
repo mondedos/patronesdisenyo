@@ -172,6 +172,76 @@ namespace DAOSQL
             }
             return -1;
         }
+        public int ActualizaObjetoPersistenteByClavePrimaria<T>(T beanOriginal, T beanModificado)
+        {
+            //calculamos el tipo de T para obtener información sobre los objetos que queremos contruir
+            //a partir de la base de datos
+            Type tipo = typeof(T);
+
+            //comprobamos que el tipo sea persistente
+            if (tipo.IsDefined(typeof(ObjetoPersistente), false))
+            {
+                //generamos el nombre de la tabla por defecto a partir del nombre del tipo
+                string nombreTabla = CalcularNombreTabla(tipo);
+
+                using (DbConnection connection = _factoria.CreateConnection())
+                {
+                    connection.ConnectionString = _coneccionBD;
+
+
+                    #region Calcular el comando de inserccion
+                    DbCommandBuilder comandBuilder = CrearDBCommandBuilder(nombreTabla, connection);
+
+                    DbCommand comandoInsert = comandBuilder.GetUpdateCommand(true);
+
+                    StringBuilder sql = new StringBuilder(comandoInsert.CommandText.Split("WHERE")[0]);
+
+                    AtributoPersistente k = GetFieldInfoPrimaryKey(beanOriginal);
+
+                    if (k != null)
+                    {
+                        sql.AppendFormat(" WHERE {0}=:{0}", k.MapeadoPor);
+                    }
+
+                    #endregion
+
+                    connection.Close();
+
+                    connection.Open();
+
+                    DbCommand updateCommand = _factoria.CreateCommand();
+                    updateCommand.CommandText = sql.ToString();
+                    updateCommand.Connection = connection;
+
+                    DbParameterCollection parametrosComando = updateCommand.Parameters;
+
+                    //rellenamos las condiciones del comando para buscar el bean a modificar
+                    RellenarParametrosFrom<T>(beanOriginal, parametrosComando, "Original_");
+
+                    //rellenamos los valores que queremos modificar
+                    RellenarParametrosFrom<T>(beanModificado, parametrosComando);
+
+                    return updateCommand.ExecuteNonQuery();
+                }
+            }
+            return -1;
+        }
+        private AtributoPersistente GetFieldInfoPrimaryKey<T>(T bean)
+        {
+            //calculamos el tipo de T para obtener información sobre los objetos que queremos contruir
+            //a partir de la base de datos
+            Type tipo = typeof(T);
+
+            foreach (FieldInfo var in tipo.GetFields((BindingFlags.NonPublic | BindingFlags.Instance)))
+            {
+                AtributoPersistente[] attrs = var.GetCustomAttributes(typeof(AtributoPersistente), false) as AtributoPersistente[];
+                if (attrs.Length > 0)
+                {
+                    return attrs[0];
+                }
+            }
+            return null;
+        }
         /// <summary>
         /// Actualiza un objeto bean persistente en la base de datos
         /// </summary>
@@ -484,7 +554,8 @@ namespace DAOSQL
                     if (attrs.Length > 0)
                     {
                         //obtenemos el nombre del campo que mapea este atributo
-                        string mapeadoPor = attrs[0].MapeadoPor;
+                        AtributoPersistente atributo = attrs[0];
+                        string mapeadoPor = atributo.MapeadoPor;
                         //si no se ha especificado ningún nombre de columa de la base datos, le asignamos el nombre del atributo
                         if (string.IsNullOrEmpty(mapeadoPor))
                         {
@@ -496,18 +567,33 @@ namespace DAOSQL
                         }
 
                         //vemos si existe una columna que contenga el nombre que se mapea
+                        dbParameterCollection.Add(CreateParameter(mapeadoPor, null));
                         if (dbParameterCollection.Contains(mapeadoPor))
                         {
-
                             DbParameter parametro = dbParameterCollection[mapeadoPor];
 
-                            parametro.Value = var.GetValue(bean);
+                            object objeto = var.GetValue(bean);
+
+                            parametro.Value = DBNull.Value;
+
+                            if (objeto != null && !(atributo.PerminteNulo && atributo.ValorNulo.Equals(Convert.ToString(obj), StringComparison.InvariantCultureIgnoreCase)))
+                            {
+                                parametro.Value = objeto;
+                            }
                         }
                     }
                 }
             }
         }
+        private DbParameter CreateParameter(string key, object value)
+        {
+            DbParameter parametro = _factoria.CreateParameter();
 
+            parametro.Value = value;
+            parametro.ParameterName = key;
+
+            return parametro;
+        }
         #endregion
 
 
@@ -802,7 +888,7 @@ public class AtributoPersistente : System.Attribute
         get { return _mapeadoPor; }
         set { _mapeadoPor = value; }
     }
-    
+
 }
 /// <summary>
 /// Declara una clase como clase bean o persistente
@@ -846,5 +932,5 @@ public class ObjetoPersistente : System.Attribute
         set { _ValorNulo = value; }
     }
 
-	
+
 }
