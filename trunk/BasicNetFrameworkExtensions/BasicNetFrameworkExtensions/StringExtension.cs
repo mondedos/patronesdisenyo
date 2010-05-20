@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.IO;
 
 namespace System
 {
@@ -38,6 +39,31 @@ namespace System
             }
 
             return sol;
+        }
+        /// <summary>
+        /// Sustituye los retornos de carros introducidos por otros sistemas operativos,
+        /// por los retornos de carros del sistema operativo actual.
+        /// </summary>
+        /// <param name="cadena">Instancia de un objeto System.String</param>
+        /// <returns>Instancia de un nuevo objeto System.String</returns>
+        public static string AjustarRetornosCarro(this string cadena)
+        {
+            StringBuilder sb = new StringBuilder();
+            if (!string.IsNullOrEmpty(cadena))
+            {
+                using (StringReader reader=new StringReader(cadena))
+                {
+                    string linea = reader.ReadLine();
+
+                    while (linea!=null)
+                    {
+                        sb.AppendLine(linea);
+                        linea = reader.ReadLine();
+                    }
+                }
+            }
+
+            return sb.ToString();
         }
     }
 }
