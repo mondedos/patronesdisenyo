@@ -802,7 +802,7 @@ public class AtributoPersistente : System.Attribute
         get { return _mapeadoPor; }
         set { _mapeadoPor = value; }
     }
-
+    
 }
 /// <summary>
 /// Declara una clase como clase bean o persistente
@@ -818,5 +818,33 @@ public class ObjetoPersistente : System.Attribute
         get { return _mapeadoPor; }
         set { _mapeadoPor = value; }
     }
+    private bool _EsClavePrimaria;
+    /// <summary>
+    /// Indica si este atributo es clave primaria que lo identifica
+    /// </summary>
+    public bool EsClavePrimaria
+    {
+        get { return _EsClavePrimaria; }
+        set { _EsClavePrimaria = value; }
+    }
+    private bool _PerminteNulo;
+    /// <summary>
+    /// Indica si este atributo permite valores nulos
+    /// </summary>
+    public bool PerminteNulo
+    {
+        get { return _PerminteNulo; }
+        set { _PerminteNulo = value; }
+    }
+    private string _ValorNulo;
+    /// <summary>
+    /// Valor nulo representado como cadena de texto
+    /// </summary>
+    public string ValorNulo
+    {
+        get { return _ValorNulo; }
+        set { _ValorNulo = value; }
+    }
 
+	
 }
