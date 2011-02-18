@@ -11,6 +11,20 @@ using System.Data.Common;
 
 namespace DAOSQL
 {
+    public class ADOHelperFactory
+    {
+        public static ADOHelper CreateADOHelperOracle(string cadena)
+        {
+            return CreateADOHelper("System.Data.OracleClient", cadena);
+        }
+        public static ADOHelper CreateADOHelper(string proveedor, string cadena)
+        {
+            DbProviderFactory factoria = DbProviderFactories.GetFactory(proveedor);
+
+            return new ADOHelper(factoria, cadena);
+        }
+    }
+
     public class ADOHelper
     {
         #region Persistencia ADO multiproveedor
@@ -32,89 +46,6 @@ namespace DAOSQL
             _coneccionBD = cadenaConeccion;
         }
 
-        /// <summary>
-        /// Obtiene una colección de objetos bean persistentes
-        /// </summary>
-        /// <typeparam name="T">Tipo de datos de los objetos devueltos</typeparam>
-        /// <param name="factoria">objeto factoría que es necesaria para conectar con los proveedores de datos ADO</param>
-        /// <returns>Colección de objetos persistentes</returns>
-        public IList<T> ObtenerObjetosPersistentes<T>() where T : new()
-        {
-            return ObtenerObjetosPersistentes<T>(null, new Dictionary<string, object>(), CommandType.Text);
-        }
-        /// <summary>
-        /// Obtiene una colección de objetos bean a partir de una consulta sql
-        /// </summary>
-        /// <typeparam name="T">Tipo de datos de los objetos devueltos</typeparam>
-        /// <param name="factoria">objeto factoría que es necesaria para conectar con los proveedores de datos ADO</param>
-        /// <param name="sql">consulta sql. Si es null o vacia, entonces será una select simple</param>
-        /// <param name="parametrosValor">diccionario de parametros, donde la clave es el nombre del parametro, y el valor es el valor del parametro</param>
-        /// <param name="tipoComando">Tipo de comando que devuelve los datos deseados (texto o prodecimiento almacenado)</param>
-        /// <returns>Colección de objetos persistentes</returns>
-        public IList<T> ObtenerObjetosPersistentes<T>(string sql, IDictionary<string, object> parametrosValor, CommandType tipoComando) where T : new()
-        {
-            List<T> solucion = new List<T>();
-
-            //calculamos el tipo de T para obtener información sobre los objetos que queremos contruir
-            //a partir de la base de datos
-            Type tipo = typeof(T);
-
-            //comprobamos que el tipo sea persistente
-            if (tipo.IsDefined(typeof(ObjetoPersistente), false))
-            {
-                string nombreTabla = CalcularNombreTabla(tipo);
-
-                using (IDbConnection connection = _factoria.CreateConnection())
-                {
-                    connection.ConnectionString = _coneccionBD;
-                    IDbDataAdapter lo_Adapt = _factoria.CreateDataAdapter();
-                    IDbCommand comandoSelect = _factoria.CreateCommand();
-
-                    //comprobamos si nos han especificado una consulta sql o no
-                    if (string.IsNullOrEmpty(sql))
-                    {
-                        comandoSelect.CommandText = string.Format("select * from {0}", nombreTabla);
-                        comandoSelect.CommandType = CommandType.Text;
-                    }
-                    else
-                    {
-                        comandoSelect.CommandText = sql;
-
-                        //en este caso como nos han especificado una consulta sql, vemos si hay que rellenar parametros
-
-                        IDataParameterCollection parametrosComando = comandoSelect.Parameters;
-                        foreach (KeyValuePair<string, object> var in parametrosValor)
-                        {
-                            IDbDataParameter pa = comandoSelect.CreateParameter();
-                            pa.ParameterName = var.Key;
-                            pa.Value = var.Value;
-
-                            parametrosComando.Add(pa);
-                        }
-                        comandoSelect.CommandType = tipoComando;
-                    }
-                    comandoSelect.Connection = connection;
-
-                    lo_Adapt.SelectCommand = comandoSelect;
-
-                    DataSet ds = new DataSet();
-                    lo_Adapt.Fill(ds);
-
-                    //por cada registro devuelto, creamos un objeto bean
-                    foreach (DataRow var in ds.Tables[0].Rows)
-                    {
-                        T profesional = new T();
-
-                        //rellenamos cada bean
-                        ADOHelper.RellenarBean<T>(profesional, var);
-                        //y la añadimos a la solución
-                        solucion.Add(profesional);
-                    }
-                }
-            }
-
-            return solucion;
-        }
 
         private static string CalcularNombreTabla(Type tipo)
         {
@@ -129,6 +60,18 @@ namespace DAOSQL
             }
             return nombreTabla;
         }
+        public int InsertarObjetoPersistente<T>(T bean)
+        {
+            using (DbConnection connection = _factoria.CreateConnection())
+            {
+                connection.ConnectionString = _coneccionBD;
+                return InsertarObjetoPersistente<T>(bean, connection);
+            }
+        }
+        public int InsertarObjetoPersistente<T>(T bean, DbConnection connection)
+        {
+            return InsertarObjetoPersistente<T>(bean, connection, null);
+        }
 
         /// <summary>
         /// Inserta un objeto bean persistente en la base de datos
@@ -136,7 +79,7 @@ namespace DAOSQL
         /// <typeparam name="T">tipo objeto bean persistente</typeparam>
         /// <param name="bean">objeto bean persistente</param>
         /// <returns></returns>
-        public int InsertarObjetoPersistente<T>(T bean)
+        public int InsertarObjetoPersistente<T>(T bean, DbConnection connection, DbTransaction tr)
         {
             //calculamos el tipo de T para obtener información sobre los objetos que queremos contruir
             //a partir de la base de datos
@@ -149,31 +92,41 @@ namespace DAOSQL
                 string nombreTabla = CalcularNombreTabla(tipo);
 
 
-                using (DbConnection connection = _factoria.CreateConnection())
+                #region Calcular el comando de inserccion
+                DbCommandBuilder comandBuilder = CrearDBCommandBuilder(nombreTabla, connection, tr);
+
+                DbCommand comandoInsert = comandBuilder.GetInsertCommand(true);
+                if (tr != null)
                 {
-                    connection.ConnectionString = _coneccionBD;
-
-
-                    #region Calcular el comando de inserccion
-                    DbCommandBuilder comandBuilder = CrearDBCommandBuilder(nombreTabla, connection);
-
-                    DbCommand comandoInsert = comandBuilder.GetInsertCommand(true);
-
-                    #endregion
-
-                    connection.Close();
-
-                    connection.Open();
-
-                    RellenarParametrosFrom<T>(bean, comandoInsert.Parameters);
-
-                    return comandoInsert.ExecuteNonQuery();
+                    comandoInsert.Transaction = tr;
                 }
+                #endregion
+
+                //connection.Close();
+
+                //connection.Open();
+
+                RellenarParametrosFrom<T>(bean, comandoInsert.Parameters);
+
+                return comandoInsert.ExecuteNonQuery();
+
             }
             return -1;
         }
         public int ActualizaObjetoPersistenteByClavePrimaria<T>(T beanOriginal, T beanModificado)
         {
+            using (DbConnection connection = _factoria.CreateConnection())
+            {
+                connection.ConnectionString = _coneccionBD;
+                return ActualizaObjetoPersistenteByClavePrimaria<T>(beanOriginal, beanModificado, connection);
+            }
+        }
+        public int ActualizaObjetoPersistenteByClavePrimaria<T>(T beanOriginal, T beanModificado, DbConnection connection)
+        {
+            return ActualizaObjetoPersistenteByClavePrimaria<T>(beanOriginal, beanModificado, connection, null);
+        }
+        public int ActualizaObjetoPersistenteByClavePrimaria<T>(T beanOriginal, T beanModificado, DbConnection connection, DbTransaction tr)
+        {
             //calculamos el tipo de T para obtener información sobre los objetos que queremos contruir
             //a partir de la base de datos
             Type tipo = typeof(T);
@@ -184,45 +137,49 @@ namespace DAOSQL
                 //generamos el nombre de la tabla por defecto a partir del nombre del tipo
                 string nombreTabla = CalcularNombreTabla(tipo);
 
-                using (DbConnection connection = _factoria.CreateConnection())
+
+
+                #region Calcular el comando de inserccion
+                DbCommandBuilder comandBuilder = CrearDBCommandBuilder(nombreTabla, connection, tr);
+
+                DbCommand comandoInsert = comandBuilder.GetUpdateCommand(true);
+                if (tr != null)
                 {
-                    connection.ConnectionString = _coneccionBD;
-
-
-                    #region Calcular el comando de inserccion
-                    DbCommandBuilder comandBuilder = CrearDBCommandBuilder(nombreTabla, connection);
-
-                    DbCommand comandoInsert = comandBuilder.GetUpdateCommand(true);
-
-                    StringBuilder sql = new StringBuilder(comandoInsert.CommandText.Split("WHERE")[0]);
-
-                    AtributoPersistente k = GetFieldInfoPrimaryKey(beanOriginal);
-
-                    if (k != null)
-                    {
-                        sql.AppendFormat(" WHERE {0}=:{0}", k.MapeadoPor);
-                    }
-
-                    #endregion
-
-                    connection.Close();
-
-                    connection.Open();
-
-                    DbCommand updateCommand = _factoria.CreateCommand();
-                    updateCommand.CommandText = sql.ToString();
-                    updateCommand.Connection = connection;
-
-                    DbParameterCollection parametrosComando = updateCommand.Parameters;
-
-                    //rellenamos las condiciones del comando para buscar el bean a modificar
-                    RellenarParametrosFrom<T>(beanOriginal, parametrosComando, "Original_");
-
-                    //rellenamos los valores que queremos modificar
-                    RellenarParametrosFrom<T>(beanModificado, parametrosComando);
-
-                    return updateCommand.ExecuteNonQuery();
+                    comandoInsert.Transaction = tr;
                 }
+                StringBuilder sql = new StringBuilder(comandoInsert.CommandText.Split("WHERE".ToCharArray())[0]);
+
+                AtributoPersistente k = GetFieldInfoPrimaryKey(beanOriginal);
+
+                if (k != null)
+                {
+                    sql.AppendFormat(" WHERE {0}=:{0}", k.MapeadoPor);
+                }
+
+                #endregion
+
+                //connection.Close();
+
+                //connection.Open();
+
+                DbCommand updateCommand = _factoria.CreateCommand();
+                if (tr != null)
+                {
+                    updateCommand.Transaction = tr;
+                }
+                updateCommand.CommandText = sql.ToString();
+                updateCommand.Connection = connection;
+
+                DbParameterCollection parametrosComando = updateCommand.Parameters;
+
+                //rellenamos las condiciones del comando para buscar el bean a modificar
+                RellenarParametrosFrom<T>(beanOriginal, parametrosComando, "Original_");
+
+                //rellenamos los valores que queremos modificar
+                RellenarParametrosFrom<T>(beanModificado, parametrosComando);
+
+                return updateCommand.ExecuteNonQuery();
+
             }
             return -1;
         }
@@ -245,11 +202,38 @@ namespace DAOSQL
         /// <summary>
         /// Actualiza un objeto bean persistente en la base de datos
         /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="beanOriginal"></param>
+        /// <param name="beanModificado"></param>
+        /// <returns></returns>
+        public int ActualizaObjetoPersistente<T>(T beanOriginal, T beanModificado)
+        {
+            using (DbConnection connection = _factoria.CreateConnection())
+            {
+                connection.ConnectionString = _coneccionBD;
+                return ActualizaObjetoPersistente<T>(beanOriginal, beanModificado, connection);
+            }
+        }
+        /// <summary>
+        /// Actualiza un objeto bean persistente en la base de datos
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="beanOriginal"></param>
+        /// <param name="beanModificado"></param>
+        /// <param name="connection"></param>
+        /// <returns></returns>
+        public int ActualizaObjetoPersistente<T>(T beanOriginal, T beanModificado, DbConnection connection)
+        {
+            return ActualizaObjetoPersistente<T>(beanOriginal, beanModificado, connection, null);
+        }
+        /// <summary>
+        /// Actualiza un objeto bean persistente en la base de datos
+        /// </summary>
         /// <typeparam name="T">tipo objeto bean persistente</typeparam>
         /// <param name="beanOriginal">objeto bean persistente de referencia a modificar</param>
         /// <param name="beanModificado">objeto bean persistente con los valores a modificar</param>
         /// <returns></returns>
-        public int ActualizaObjetoPersistente<T>(T beanOriginal, T beanModificado)
+        public int ActualizaObjetoPersistente<T>(T beanOriginal, T beanModificado, DbConnection connection, DbTransaction tr)
         {
             //calculamos el tipo de T para obtener información sobre los objetos que queremos contruir
             //a partir de la base de datos
@@ -262,32 +246,30 @@ namespace DAOSQL
                 string nombreTabla = CalcularNombreTabla(tipo);
 
 
-                using (DbConnection connection = _factoria.CreateConnection())
+                #region Calcular el comando de inserccion
+                DbCommandBuilder comandBuilder = CrearDBCommandBuilder(nombreTabla, connection, tr);
+
+                DbCommand comandoInsert = comandBuilder.GetUpdateCommand(true);
+                if (tr != null)
                 {
-                    connection.ConnectionString = _coneccionBD;
-
-
-                    #region Calcular el comando de inserccion
-                    DbCommandBuilder comandBuilder = CrearDBCommandBuilder(nombreTabla, connection);
-
-                    DbCommand comandoInsert = comandBuilder.GetUpdateCommand(true);
-
-                    #endregion
-
-                    connection.Close();
-
-                    connection.Open();
-                    DbParameterCollection parametrosComando = comandoInsert.Parameters;
-
-                    //rellenamos las condiciones del comando para buscar el bean a modificar
-                    RellenarParametrosFrom<T>(beanOriginal, parametrosComando, "Original_");
-
-                    //rellenamos los valores que queremos modificar
-                    RellenarParametrosFrom<T>(beanModificado, parametrosComando);
-
-                    return comandoInsert.ExecuteNonQuery();
+                    comandoInsert.Transaction = tr;
                 }
+                #endregion
+
+                //connection.Close();
+
+                //connection.Open();
+                DbParameterCollection parametrosComando = comandoInsert.Parameters;
+
+                //rellenamos las condiciones del comando para buscar el bean a modificar
+                RellenarParametrosFrom<T>(beanOriginal, parametrosComando, "Original_");
+
+                //rellenamos los valores que queremos modificar
+                RellenarParametrosFrom<T>(beanModificado, parametrosComando);
+
+                return comandoInsert.ExecuteNonQuery();
             }
+
             return -1;
         }
 
@@ -299,10 +281,25 @@ namespace DAOSQL
         /// <returns></returns>
         private DbCommandBuilder CrearDBCommandBuilder(string nombreTabla, DbConnection connection)
         {
+            return CrearDBCommandBuilder(nombreTabla, connection, null);
+        }
+        /// <summary>
+        /// Calcula un DbCommandBuilder que nos ayudará a generar de forma automática los comandos mas comunes
+        /// </summary>
+        /// <param name="nombreTabla"></param>
+        /// <param name="connection"></param>
+        /// <param name="tr"></param>
+        /// <returns></returns>
+        private DbCommandBuilder CrearDBCommandBuilder(string nombreTabla, DbConnection connection, DbTransaction tr)
+        {
             DbDataAdapter lo_Adapt = _factoria.CreateDataAdapter();
 
             DbCommand comandoSelect = _factoria.CreateCommand();
             comandoSelect.Connection = connection;
+            if (tr != null)
+            {
+                comandoSelect.Transaction = tr;
+            }
             comandoSelect.CommandType = CommandType.Text;
             comandoSelect.CommandText = string.Format("select * from {0}", nombreTabla);
 
@@ -315,141 +312,132 @@ namespace DAOSQL
         }
 
         /// <summary>
-        /// Hace un UPDATE de SQL sobre la tabla cuyo nombre debe coincidir
-        /// con el de la clase del objeto pasado.
-        /// Los nombre de los campos de dicha tabla deben coincidir con nombres de atributos publicos
-        /// de la clase del objeto pasado. Los campos privados no se persisten.
-        ///
-        /// La conexión pasada debe estar abierta.
+        /// Obtiene una colección de objetos bean persistentes
         /// </summary>
-        /// <param name="conex"></param>
-        /// <param name="objeto"></param>
-        /// <param name="where"></param>
-        /// <param name="st"></param>
-        /// <returns></returns>
-        internal static bool PersistirCambiosObjeto(SqlConnection conex, object objeto, Hashtable where, SqlTransaction st)
+        /// <typeparam name="T">Tipo de datos de los objetos devueltos</typeparam>
+        /// <param name="factoria">objeto factoría que es necesaria para conectar con los proveedores de datos ADO</param>
+        /// <returns>Colección de objetos persistentes</returns>
+        public IList<T> ObtenerObjetosPersistentes<T>() where T : new()
         {
-
-            //TODO: realizar este ´metodo
-
-            Type t = objeto.GetType();
-
-            bool resultados = true;
-
-            System.Reflection.FieldInfo[] campos = t.GetFields();
-
-            StringBuilder sb = new StringBuilder();
-            bool primero = true;
-
-            //Construimos el SET de la clausula SQL UPDATE
-            foreach (System.Reflection.FieldInfo campo in campos)
+            using (IDbConnection connection = _factoria.CreateConnection())
             {
-                string key = campo.Name;
-                object o = campo.Attributes;
-                if (primero)
-                    primero = false;
+                connection.ConnectionString = _coneccionBD;
+                return ObtenerObjetosPersistentes<T>(connection);
+            }
+        }
+        /// <summary>
+        /// Obtiene una colección de objetos bean persistentes
+        /// </summary>
+        /// <typeparam name="T">Tipo genérico</typeparam>
+        /// <param name="connection"></param>
+        /// <returns>Colección de objetos persistentes</returns>
+        public IList<T> ObtenerObjetosPersistentes<T>(IDbConnection connection) where T : new()
+        {
+            return ObtenerObjetosPersistentes<T>(connection, null);
+        }
+        /// <summary>
+        /// Obtiene una colección de objetos bean persistentes
+        /// </summary>
+        /// <typeparam name="T">Tipo genérico</typeparam>
+        /// <param name="connection"></param>
+        /// <param name="tr">transacción</param>
+        /// <returns>Colección de objetos persistentes</returns>
+        public IList<T> ObtenerObjetosPersistentes<T>(IDbConnection connection, DbTransaction tr) where T : new()
+        {
+            return ObtenerObjetosPersistentes<T>(null, new Dictionary<string, object>(), CommandType.Text, connection, tr);
+        }
+        /// <summary>
+        /// Obtiene una colección de objetos bean persistentes
+        /// </summary>
+        /// <typeparam name="T">Tipo genérico</typeparam>
+        /// <param name="sql">consulta sql. Si es null o vacia, entonces será una select simple</param>
+        /// <param name="parametrosValor"></param>
+        /// <param name="tipoComando"></param>
+        /// <param name="connection"></param>
+        /// <returns>Colección de objetos persistentes</returns>
+        public IList<T> ObtenerObjetosPersistentes<T>(string sql, IDictionary<string, object> parametrosValor, CommandType tipoComando, IDbConnection connection) where T : new()
+        {
+            return ObtenerObjetosPersistentes<T>(sql, parametrosValor, tipoComando, connection, null);
+        }
+        /// <summary>
+        /// Obtiene una colección de objetos bean a partir de una consulta sql
+        /// </summary>
+        /// <typeparam name="T">Tipo de datos de los objetos devueltos</typeparam>
+        /// <param name="factoria">objeto factoría que es necesaria para conectar con los proveedores de datos ADO</param>
+        /// <param name="sql">consulta sql. Si es null o vacia, entonces será una select simple</param>
+        /// <param name="parametrosValor">diccionario de parametros, donde la clave es el nombre del parametro, y el valor es el valor del parametro</param>
+        /// <param name="tipoComando">Tipo de comando que devuelve los datos deseados (texto o prodecimiento almacenado)</param>
+        /// <returns>Colección de objetos persistentes</returns>
+        public IList<T> ObtenerObjetosPersistentes<T>(string sql, IDictionary<string, object> parametrosValor, CommandType tipoComando, IDbConnection connection, DbTransaction tr) where T : new()
+        {
+            List<T> solucion = new List<T>();
+
+            //calculamos el tipo de T para obtener información sobre los objetos que queremos contruir
+            //a partir de la base de datos
+            Type tipo = typeof(T);
+
+            //comprobamos que el tipo sea persistente
+            if (tipo.IsDefined(typeof(ObjetoPersistente), false))
+            {
+                string nombreTabla = CalcularNombreTabla(tipo);
+
+
+                connection.ConnectionString = _coneccionBD;
+                IDbDataAdapter lo_Adapt = _factoria.CreateDataAdapter();
+                IDbCommand comandoSelect = _factoria.CreateCommand();
+
+                //comprobamos si nos han especificado una consulta sql o no
+                if (string.IsNullOrEmpty(sql))
+                {
+                    comandoSelect.CommandText = string.Format("select * from {0}", nombreTabla);
+                    comandoSelect.CommandType = CommandType.Text;
+                }
                 else
                 {
-                    sb.Append(" ,");
-                    //valores.Append(" ,");
-                }
-                sb.Append(key);
-                sb.Append(" = @" + key);
-            }
+                    comandoSelect.CommandText = sql;
 
+                    //en este caso como nos han especificado una consulta sql, vemos si hay que rellenar parametros
 
-
-            //Construimos la clausula WHERE de la SQL UPDATE
-            StringBuilder sbWhere = new StringBuilder();
-            if (where != null && where.Count > 0)
-            {
-
-                primero = true;
-
-                foreach (object k in where.Keys)
-                {
-                    string key = k.ToString();
-
-                    if (primero)
-                        primero = false;
-                    else
+                    IDataParameterCollection parametrosComando = comandoSelect.Parameters;
+                    foreach (KeyValuePair<string, object> var in parametrosValor)
                     {
-                        sbWhere.Append(" AND ");
+                        IDbDataParameter pa = comandoSelect.CreateParameter();
+                        pa.ParameterName = var.Key;
+                        pa.Value = var.Value;
+
+                        parametrosComando.Add(pa);
                     }
-                    sbWhere.Append(key);
-                    sbWhere.Append(" = ");
-                    sbWhere.Append("@" + key);
+                    comandoSelect.CommandType = tipoComando;
+                }
+                comandoSelect.Connection = connection;
+
+                lo_Adapt.SelectCommand = comandoSelect;
+
+                DataSet ds = new DataSet();
+                lo_Adapt.Fill(ds);
+
+                //por cada registro devuelto, creamos un objeto bean
+                foreach (DataRow var in ds.Tables[0].Rows)
+                {
+                    T profesional = new T();
+
+                    //rellenamos cada bean
+                    ADOHelper.RellenarBean<T>(profesional, var);
+                    //y la añadimos a la solución
+                    solucion.Add(profesional);
                 }
 
             }
-            else
-            {
-                //No creo que quieras hacer update en la tabla
-                //sin ninguna condición.
-                return false;
-            }
 
-            /**
-             * UPDATE table_name
-               SET column_name = new_value
-               WHERE column_name = some_value
-             * */
-
-            StringBuilder query = new StringBuilder();
-            query.Append("UPDATE ");
-            query.Append(t.Name);
-            query.Append(" SET  ");
-            query.Append(sb);
-            query.Append(" WHERE  ");
-            query.Append(sbWhere);
-            query.Append("  ");
-
-            //Creamos el comando
-            SqlCommand comando = conex.CreateCommand();
-            comando.CommandText = query.ToString();
-            if (st != null)
-                comando.Transaction = st;
-
-            //Le pasamos los parametros al comando
-            foreach (System.Reflection.FieldInfo campo in campos)
-            {
-                string key = campo.Name;
-
-                object valor = campo.GetValue(objeto);
-
-                comando.Parameters.AddWithValue("@" + key, valor);
-            }
-
-            //Ejecutamos
-            resultados = comando.ExecuteNonQuery() > 0;
-
-#if DEBUG
-            //if (resultados)
-            //{
-            //    Log log = Log.Instance;
-            //    log.Insertar(comando.CommandText);
-
-            //    foreach (System.Reflection.FieldInfo campo in campos)
-            //    {
-            //        string key = campo.Name;
-
-            //        object valor = campo.GetValue(objeto);
-            //        log.Insertar(key + " = " + valor);
-            //    }
-            //}
-#endif
-
-            return resultados;
-
+            return solucion;
         }
-
         /// <summary>
         /// Dado un bean y un datarow que contiene campos cuyo nombre coincide con los nombres de las propiedades
         /// del Bean, copia los valores almacenados en el DataRow a las propiedades equivalentes del Bean.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="bean"></param>
-        /// <param name="fuente"></param>
+        /// <typeparam name="T">Tipo genérico</typeparam>
+        /// <param name="bean">objeto a modificar</param>
+        /// <param name="fila">fuente de datos</param>
         public static void RellenarBean<T>(T bean, DataRow fila)
         {
             Type tipo = typeof(T);
@@ -489,6 +477,12 @@ namespace DAOSQL
                 }
             }
         }
+        /// <summary>
+        /// Dado un bean persistente y una colección de parámetros con valor, rellena todos los atributos mapeados.
+        /// </summary>
+        /// <typeparam name="T">Tipo genérico</typeparam>
+        /// <param name="bean">objeto a modificar</param>
+        /// <param name="parametros">Colección de parámetros</param>
         public static void RellenarBean<T>(T bean, DbParameterCollection parametros)
         {
             Type tipo = typeof(T);
@@ -521,7 +515,13 @@ namespace DAOSQL
                 }
             }
         }
-
+        /// <summary>
+        /// Cambia el valor de un atributo de un bean con un nuevo valor.
+        /// </summary>
+        /// <typeparam name="T">Tipo genérico</typeparam>
+        /// <param name="bean">objeto a modificar</param>
+        /// <param name="var">Información sobre el atributo a cambiar</param>
+        /// <param name="nuevoValor">nuevo valor</param>
         private static void AsignaValorAtributo<T>(T bean, FieldInfo var, object nuevoValor)
         {
             Type tipoP = var.FieldType;
@@ -535,10 +535,23 @@ namespace DAOSQL
                 var.SetValue(bean, ChangeType(nuevoValor, var.FieldType));
             }
         }
+        /// <summary>
+        /// Rellena la colección de parametros con los valores de los atributos mapeados en la base de datos
+        /// </summary>
+        /// <typeparam name="T">Tipo genérico</typeparam>
+        /// <param name="bean">Obqueto persistente</param>
+        /// <param name="parametros">Colección de parametros que se quiere rellenar</param>
         private void RellenarParametrosFrom<T>(T bean, DbParameterCollection parametros)
         {
             RellenarParametrosFrom<T>(bean, parametros, null);
         }
+        /// <summary>
+        /// Rellena la colección de parametros con los valores de los atributos mapeados en la base de datos
+        /// </summary>
+        /// <typeparam name="T">Tipo genérico</typeparam>
+        /// <param name="bean">Obqueto persistente</param>
+        /// <param name="dbParameterCollection">Colección de parametros que se quiere rellenar</param>
+        /// <param name="prefijo">prefijo común que tienen todos los parámetros que se quiere rellenar</param>
         private void RellenarParametrosFrom<T>(T bean, DbParameterCollection dbParameterCollection, string prefijo)
         {
             Type tipo = typeof(T);
@@ -567,7 +580,7 @@ namespace DAOSQL
                         }
 
                         //vemos si existe una columna que contenga el nombre que se mapea
-                        dbParameterCollection.Add(CreateParameter(mapeadoPor, null));
+                        dbParameterCollection.Add(CreateParameter(mapeadoPor, null));//esta línea es distinta a la versión vb.net. Hay que estudiar si efectivamente debe estar aqui.
                         if (dbParameterCollection.Contains(mapeadoPor))
                         {
                             DbParameter parametro = dbParameterCollection[mapeadoPor];
@@ -576,7 +589,7 @@ namespace DAOSQL
 
                             parametro.Value = DBNull.Value;
 
-                            if (objeto != null && !(atributo.PerminteNulo && atributo.ValorNulo.Equals(Convert.ToString(obj), StringComparison.InvariantCultureIgnoreCase)))
+                            if (objeto != null && !(atributo.PerminteNulo && atributo.ValorNulo.Equals(Convert.ToString(objeto), StringComparison.InvariantCultureIgnoreCase)))
                             {
                                 parametro.Value = objeto;
                             }
@@ -585,6 +598,12 @@ namespace DAOSQL
                 }
             }
         }
+        /// <summary>
+        /// Crea y rellena un nuevo parámetro
+        /// </summary>
+        /// <param name="key">Nombre del parámetro</param>
+        /// <param name="value">Valor del parámetro</param>
+        /// <returns>Parametro rellenado</returns>
         private DbParameter CreateParameter(string key, object value)
         {
             DbParameter parametro = _factoria.CreateParameter();
