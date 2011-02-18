@@ -888,22 +888,6 @@ public class AtributoPersistente : System.Attribute
         get { return _mapeadoPor; }
         set { _mapeadoPor = value; }
     }
-
-}
-/// <summary>
-/// Declara una clase como clase bean o persistente
-/// </summary>
-public class ObjetoPersistente : System.Attribute
-{
-    private string _mapeadoPor;
-    /// <summary>
-    /// Nombre de la tabla que mapea el objeto Persistente
-    /// </summary>
-    public string MapeadoPor
-    {
-        get { return _mapeadoPor; }
-        set { _mapeadoPor = value; }
-    }
     private bool _EsClavePrimaria;
     /// <summary>
     /// Indica si este atributo es clave primaria que lo identifica
@@ -931,6 +915,19 @@ public class ObjetoPersistente : System.Attribute
         get { return _ValorNulo; }
         set { _ValorNulo = value; }
     }
-
-
+}
+/// <summary>
+/// Declara una clase como clase bean o persistente
+/// </summary>
+public class ObjetoPersistente : System.Attribute
+{
+    private string _mapeadoPor;
+    /// <summary>
+    /// Nombre de la tabla que mapea el objeto Persistente
+    /// </summary>
+    public string MapeadoPor
+    {
+        get { return _mapeadoPor; }
+        set { _mapeadoPor = value; }
+    }
 }
