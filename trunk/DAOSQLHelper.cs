@@ -32,7 +32,7 @@ namespace DAOSQL
 
         private string _coneccionBD;
         /// <summary>
-        /// Obtiene la cadena de conciÛn a la base de datos
+        /// Obtiene la cadena de conci√≥n a la base de datos
         /// </summary>
         public string CadenaConeccion
         {
@@ -81,7 +81,7 @@ namespace DAOSQL
         /// <returns></returns>
         public int InsertarObjetoPersistente<T>(T bean, DbConnection connection, DbTransaction tr)
         {
-            //calculamos el tipo de T para obtener informaciÛn sobre los objetos que queremos contruir
+            //calculamos el tipo de T para obtener informaci√≥n sobre los objetos que queremos contruir
             //a partir de la base de datos
             Type tipo = typeof(T);
 
@@ -127,7 +127,7 @@ namespace DAOSQL
         }
         public int ActualizaObjetoPersistenteByClavePrimaria<T>(T beanOriginal, T beanModificado, DbConnection connection, DbTransaction tr)
         {
-            //calculamos el tipo de T para obtener informaciÛn sobre los objetos que queremos contruir
+            //calculamos el tipo de T para obtener informaci√≥n sobre los objetos que queremos contruir
             //a partir de la base de datos
             Type tipo = typeof(T);
 
@@ -185,7 +185,7 @@ namespace DAOSQL
         }
         private AtributoPersistente GetFieldInfoPrimaryKey<T>(T bean)
         {
-            //calculamos el tipo de T para obtener informaciÛn sobre los objetos que queremos contruir
+            //calculamos el tipo de T para obtener informaci√≥n sobre los objetos que queremos contruir
             //a partir de la base de datos
             Type tipo = typeof(T);
 
@@ -235,7 +235,7 @@ namespace DAOSQL
         /// <returns></returns>
         public int ActualizaObjetoPersistente<T>(T beanOriginal, T beanModificado, DbConnection connection, DbTransaction tr)
         {
-            //calculamos el tipo de T para obtener informaciÛn sobre los objetos que queremos contruir
+            //calculamos el tipo de T para obtener informaci√≥n sobre los objetos que queremos contruir
             //a partir de la base de datos
             Type tipo = typeof(T);
 
@@ -274,7 +274,7 @@ namespace DAOSQL
         }
 
         /// <summary>
-        /// Calcula un DbCommandBuilder que nos ayudar· a generar de forma autom·tica los comandos mas comunes
+        /// Calcula un DbCommandBuilder que nos ayudar√° a generar de forma autom√°tica los comandos mas comunes
         /// </summary>
         /// <param name="nombreTabla"></param>
         /// <param name="connection"></param>
@@ -284,7 +284,7 @@ namespace DAOSQL
             return CrearDBCommandBuilder(nombreTabla, connection, null);
         }
         /// <summary>
-        /// Calcula un DbCommandBuilder que nos ayudar· a generar de forma autom·tica los comandos mas comunes
+        /// Calcula un DbCommandBuilder que nos ayudar√° a generar de forma autom√°tica los comandos mas comunes
         /// </summary>
         /// <param name="nombreTabla"></param>
         /// <param name="connection"></param>
@@ -312,11 +312,11 @@ namespace DAOSQL
         }
 
         /// <summary>
-        /// Obtiene una colecciÛn de objetos bean persistentes
+        /// Obtiene una colecci√≥n de objetos bean persistentes
         /// </summary>
         /// <typeparam name="T">Tipo de datos de los objetos devueltos</typeparam>
-        /// <param name="factoria">objeto factorÌa que es necesaria para conectar con los proveedores de datos ADO</param>
-        /// <returns>ColecciÛn de objetos persistentes</returns>
+        /// <param name="factoria">objeto factor√≠a que es necesaria para conectar con los proveedores de datos ADO</param>
+        /// <returns>Colecci√≥n de objetos persistentes</returns>
         public IList<T> ObtenerObjetosPersistentes<T>() where T : new()
         {
             using (IDbConnection connection = _factoria.CreateConnection())
@@ -326,53 +326,53 @@ namespace DAOSQL
             }
         }
         /// <summary>
-        /// Obtiene una colecciÛn de objetos bean persistentes
+        /// Obtiene una colecci√≥n de objetos bean persistentes
         /// </summary>
-        /// <typeparam name="T">Tipo genÈrico</typeparam>
+        /// <typeparam name="T">Tipo gen√©rico</typeparam>
         /// <param name="connection"></param>
-        /// <returns>ColecciÛn de objetos persistentes</returns>
+        /// <returns>Colecci√≥n de objetos persistentes</returns>
         public IList<T> ObtenerObjetosPersistentes<T>(IDbConnection connection) where T : new()
         {
             return ObtenerObjetosPersistentes<T>(connection, null);
         }
         /// <summary>
-        /// Obtiene una colecciÛn de objetos bean persistentes
+        /// Obtiene una colecci√≥n de objetos bean persistentes
         /// </summary>
-        /// <typeparam name="T">Tipo genÈrico</typeparam>
+        /// <typeparam name="T">Tipo gen√©rico</typeparam>
         /// <param name="connection"></param>
-        /// <param name="tr">transacciÛn</param>
-        /// <returns>ColecciÛn de objetos persistentes</returns>
+        /// <param name="tr">transacci√≥n</param>
+        /// <returns>Colecci√≥n de objetos persistentes</returns>
         public IList<T> ObtenerObjetosPersistentes<T>(IDbConnection connection, DbTransaction tr) where T : new()
         {
             return ObtenerObjetosPersistentes<T>(null, new Dictionary<string, object>(), CommandType.Text, connection, tr);
         }
         /// <summary>
-        /// Obtiene una colecciÛn de objetos bean persistentes
+        /// Obtiene una colecci√≥n de objetos bean persistentes
         /// </summary>
-        /// <typeparam name="T">Tipo genÈrico</typeparam>
-        /// <param name="sql">consulta sql. Si es null o vacia, entonces ser· una select simple</param>
+        /// <typeparam name="T">Tipo gen√©rico</typeparam>
+        /// <param name="sql">consulta sql. Si es null o vacia, entonces ser√° una select simple</param>
         /// <param name="parametrosValor"></param>
         /// <param name="tipoComando"></param>
         /// <param name="connection"></param>
-        /// <returns>ColecciÛn de objetos persistentes</returns>
+        /// <returns>Colecci√≥n de objetos persistentes</returns>
         public IList<T> ObtenerObjetosPersistentes<T>(string sql, IDictionary<string, object> parametrosValor, CommandType tipoComando, IDbConnection connection) where T : new()
         {
             return ObtenerObjetosPersistentes<T>(sql, parametrosValor, tipoComando, connection, null);
         }
         /// <summary>
-        /// Obtiene una colecciÛn de objetos bean a partir de una consulta sql
+        /// Obtiene una colecci√≥n de objetos bean a partir de una consulta sql
         /// </summary>
         /// <typeparam name="T">Tipo de datos de los objetos devueltos</typeparam>
-        /// <param name="factoria">objeto factorÌa que es necesaria para conectar con los proveedores de datos ADO</param>
-        /// <param name="sql">consulta sql. Si es null o vacia, entonces ser· una select simple</param>
+        /// <param name="factoria">objeto factor√≠a que es necesaria para conectar con los proveedores de datos ADO</param>
+        /// <param name="sql">consulta sql. Si es null o vacia, entonces ser√° una select simple</param>
         /// <param name="parametrosValor">diccionario de parametros, donde la clave es el nombre del parametro, y el valor es el valor del parametro</param>
         /// <param name="tipoComando">Tipo de comando que devuelve los datos deseados (texto o prodecimiento almacenado)</param>
-        /// <returns>ColecciÛn de objetos persistentes</returns>
+        /// <returns>Colecci√≥n de objetos persistentes</returns>
         public IList<T> ObtenerObjetosPersistentes<T>(string sql, IDictionary<string, object> parametrosValor, CommandType tipoComando, IDbConnection connection, DbTransaction tr) where T : new()
         {
             List<T> solucion = new List<T>();
 
-            //calculamos el tipo de T para obtener informaciÛn sobre los objetos que queremos contruir
+            //calculamos el tipo de T para obtener informaci√≥n sobre los objetos que queremos contruir
             //a partir de la base de datos
             Type tipo = typeof(T);
 
@@ -423,7 +423,7 @@ namespace DAOSQL
 
                     //rellenamos cada bean
                     ADOHelper.RellenarBean<T>(profesional, var);
-                    //y la aÒadimos a la soluciÛn
+                    //y la a√±adimos a la soluci√≥n
                     solucion.Add(profesional);
                 }
 
@@ -435,7 +435,7 @@ namespace DAOSQL
         /// Dado un bean y un datarow que contiene campos cuyo nombre coincide con los nombres de las propiedades
         /// del Bean, copia los valores almacenados en el DataRow a las propiedades equivalentes del Bean.
         /// </summary>
-        /// <typeparam name="T">Tipo genÈrico</typeparam>
+        /// <typeparam name="T">Tipo gen√©rico</typeparam>
         /// <param name="bean">objeto a modificar</param>
         /// <param name="fila">fuente de datos</param>
         public static void RellenarBean<T>(T bean, DataRow fila)
@@ -456,7 +456,7 @@ namespace DAOSQL
                     {
                         //obtenemos el nombre del campo que mapea este atributo
                         string mapeadoPor = attrs[0].MapeadoPor;
-                        //si no se ha especificado ning˙n nombre de columa de la base datos, le asignamos el nombre del atributo
+                        //si no se ha especificado ning√∫n nombre de columa de la base datos, le asignamos el nombre del atributo
                         if (string.IsNullOrEmpty(mapeadoPor))
                         {
                             mapeadoPor = var.Name;
@@ -478,11 +478,11 @@ namespace DAOSQL
             }
         }
         /// <summary>
-        /// Dado un bean persistente y una colecciÛn de par·metros con valor, rellena todos los atributos mapeados.
+        /// Dado un bean persistente y una colecci√≥n de par√°metros con valor, rellena todos los atributos mapeados.
         /// </summary>
-        /// <typeparam name="T">Tipo genÈrico</typeparam>
+        /// <typeparam name="T">Tipo gen√©rico</typeparam>
         /// <param name="bean">objeto a modificar</param>
-        /// <param name="parametros">ColecciÛn de par·metros</param>
+        /// <param name="parametros">Colecci√≥n de par√°metros</param>
         public static void RellenarBean<T>(T bean, DbParameterCollection parametros)
         {
             Type tipo = typeof(T);
@@ -499,7 +499,7 @@ namespace DAOSQL
                     {
                         //obtenemos el nombre del campo que mapea este atributo
                         string mapeadoPor = attrs[0].MapeadoPor;
-                        //si no se ha especificado ning˙n nombre de columa de la base datos, le asignamos el nombre del atributo
+                        //si no se ha especificado ning√∫n nombre de columa de la base datos, le asignamos el nombre del atributo
                         if (string.IsNullOrEmpty(mapeadoPor))
                         {
                             mapeadoPor = var.Name;
@@ -518,9 +518,9 @@ namespace DAOSQL
         /// <summary>
         /// Cambia el valor de un atributo de un bean con un nuevo valor.
         /// </summary>
-        /// <typeparam name="T">Tipo genÈrico</typeparam>
+        /// <typeparam name="T">Tipo gen√©rico</typeparam>
         /// <param name="bean">objeto a modificar</param>
-        /// <param name="var">InformaciÛn sobre el atributo a cambiar</param>
+        /// <param name="var">Informaci√≥n sobre el atributo a cambiar</param>
         /// <param name="nuevoValor">nuevo valor</param>
         private static void AsignaValorAtributo<T>(T bean, FieldInfo var, object nuevoValor)
         {
@@ -536,22 +536,22 @@ namespace DAOSQL
             }
         }
         /// <summary>
-        /// Rellena la colecciÛn de parametros con los valores de los atributos mapeados en la base de datos
+        /// Rellena la colecci√≥n de parametros con los valores de los atributos mapeados en la base de datos
         /// </summary>
-        /// <typeparam name="T">Tipo genÈrico</typeparam>
+        /// <typeparam name="T">Tipo gen√©rico</typeparam>
         /// <param name="bean">Obqueto persistente</param>
-        /// <param name="parametros">ColecciÛn de parametros que se quiere rellenar</param>
+        /// <param name="parametros">Colecci√≥n de parametros que se quiere rellenar</param>
         private void RellenarParametrosFrom<T>(T bean, DbParameterCollection parametros)
         {
             RellenarParametrosFrom<T>(bean, parametros, null);
         }
         /// <summary>
-        /// Rellena la colecciÛn de parametros con los valores de los atributos mapeados en la base de datos
+        /// Rellena la colecci√≥n de parametros con los valores de los atributos mapeados en la base de datos
         /// </summary>
-        /// <typeparam name="T">Tipo genÈrico</typeparam>
+        /// <typeparam name="T">Tipo gen√©rico</typeparam>
         /// <param name="bean">Obqueto persistente</param>
-        /// <param name="dbParameterCollection">ColecciÛn de parametros que se quiere rellenar</param>
-        /// <param name="prefijo">prefijo com˙n que tienen todos los par·metros que se quiere rellenar</param>
+        /// <param name="dbParameterCollection">Colecci√≥n de parametros que se quiere rellenar</param>
+        /// <param name="prefijo">prefijo com√∫n que tienen todos los par√°metros que se quiere rellenar</param>
         private void RellenarParametrosFrom<T>(T bean, DbParameterCollection dbParameterCollection, string prefijo)
         {
             Type tipo = typeof(T);
@@ -569,7 +569,7 @@ namespace DAOSQL
                         //obtenemos el nombre del campo que mapea este atributo
                         AtributoPersistente atributo = attrs[0];
                         string mapeadoPor = atributo.MapeadoPor;
-                        //si no se ha especificado ning˙n nombre de columa de la base datos, le asignamos el nombre del atributo
+                        //si no se ha especificado ning√∫n nombre de columa de la base datos, le asignamos el nombre del atributo
                         if (string.IsNullOrEmpty(mapeadoPor))
                         {
                             mapeadoPor = var.Name;
@@ -580,7 +580,7 @@ namespace DAOSQL
                         }
 
                         //vemos si existe una columna que contenga el nombre que se mapea
-                        dbParameterCollection.Add(CreateParameter(mapeadoPor, null));//esta lÌnea es distinta a la versiÛn vb.net. Hay que estudiar si efectivamente debe estar aqui.
+                        dbParameterCollection.Add(CreateParameter(mapeadoPor, null));//esta l√≠nea es distinta a la versi√≥n vb.net. Hay que estudiar si efectivamente debe estar aqui.
                         if (dbParameterCollection.Contains(mapeadoPor))
                         {
                             DbParameter parametro = dbParameterCollection[mapeadoPor];
@@ -599,10 +599,10 @@ namespace DAOSQL
             }
         }
         /// <summary>
-        /// Crea y rellena un nuevo par·metro
+        /// Crea y rellena un nuevo par√°metro
         /// </summary>
-        /// <param name="key">Nombre del par·metro</param>
-        /// <param name="value">Valor del par·metro</param>
+        /// <param name="key">Nombre del par√°metro</param>
+        /// <param name="value">Valor del par√°metro</param>
         /// <returns>Parametro rellenado</returns>
         private DbParameter CreateParameter(string key, object value)
         {
@@ -644,6 +644,13 @@ namespace DAOSQL
                 }
             }
         }
+          /// <summary>
+        /// Copia las propiedades b√°sicas de dos objetos
+        /// </summary>
+        /// <typeparam name="T1"></typeparam>
+        /// <typeparam name="T2"></typeparam>
+        /// <param name="origen"></param>
+        /// <param name="destino"></param>
         public static void CopiarPropiedadesTipo<T1, T2>(T1 origen, T2 destino)
         {
             Type tipoPropiedad = null;
@@ -651,22 +658,25 @@ namespace DAOSQL
             foreach (System.Reflection.PropertyInfo var in origen.GetType().GetProperties())
             {
                 pdestino = destino.GetType().GetProperty(var.Name);
-                if (var.CanRead && pdestino != null && pdestino.CanWrite)
+                if (!var.CanRead || pdestino == null || !pdestino.CanWrite) continue;
+                object valor = var.GetValue(origen, null);
+                tipoPropiedad = pdestino.PropertyType;
+                if (valor == null) continue;
+                if (tipoPropiedad.IsEnum)
                 {
-                    object valor = var.GetValue(origen, null);
-                    tipoPropiedad = pdestino.PropertyType;
-                    if (valor != null)
+                    pdestino.SetValue(destino, Enum.Parse(tipoPropiedad, valor.ToString()), null);
+                }
+                else if (tipoPropiedad.IsArray)
+                {
+                    if (tipoPropiedad.FullName != null)
                     {
-                        if (tipoPropiedad.IsEnum)
-                        {
-                            pdestino.SetValue(destino, Enum.Parse(tipoPropiedad, valor.ToString()), null);
-                        }
-                        else if (tipoPropiedad.IsArray)
-                        {
-                            Type tiarr = Type.GetType(tipoPropiedad.FullName, true);
-                            object[] avalor = valor as object[];
+                        Type tiarr = Type.GetType(tipoPropiedad.FullName, true);
+                        object[] avalor = valor as object[];
 
-                            pdestino.SetValue(destino, Activator.CreateInstance(tiarr, new object[] { avalor.Length }), null);
+                        if (avalor != null)
+                        {
+                            pdestino.SetValue(destino, Activator.CreateInstance(tiarr, new object[] {avalor.Length}),
+                                              null);
 
 
                             object[] nuevoarray = pdestino.GetValue(destino, null) as object[];
@@ -675,21 +685,19 @@ namespace DAOSQL
                             for (int i = 0; i < avalor.Length; i++)
                             {
                                 vi = avalor[i];
-                                if (vi is ICloneable)
-                                {
-                                    nuevoarray[i] = ((ICloneable)vi).Clone();
-                                }
+                                if (!(vi is ICloneable)) continue;
+                                if (nuevoarray != null) nuevoarray[i] = ((ICloneable) vi).Clone();
                             }
                         }
-                        else if (valor is IConvertible)
-                        {
-                            pdestino.SetValue(destino, ChangeType(valor, tipoPropiedad), null);
-                        }
-                        else if (valor is ICloneable)
-                        {
-                            pdestino.SetValue(destino, ((ICloneable)valor).Clone(), null);
-                        }
                     }
+                }
+                else if (valor is IConvertible)
+                {
+                    pdestino.SetValue(destino, ChangeType(valor, tipoPropiedad), null);
+                }
+                else if (valor is ICloneable)
+                {
+                    pdestino.SetValue(destino, ((ICloneable)valor).Clone(), null);
                 }
             }
         }
